@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec s6-setuidgid media env HOME=/data/config /opt/sonarr/Sonarr -nobrowser -data=/data/config/sonarr

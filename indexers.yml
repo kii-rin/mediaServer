@@ -1,0 +1,20 @@
+# Indexers (where Mediabox searches). Added to Prowlarr automatically on
+# every start; entries already in Prowlarr are left alone.
+#
+# On a running server this file lives at /data/config/indexers.yml.
+# Edit it there and restart the container to add more.
+#
+#   definition:   Prowlarr's id for the indexer (the file name in
+#                 https://github.com/Prowlarr/Indexers, without .yml)
+#   name:         what it's called in Prowlarr (optional)
+#   flaresolverr: true if the site sits behind Cloudflare protection
+#   settings:     optional values for that indexer's own settings
+#
+# The defaults are legal sources only.
+
+indexers:
+  - definition: internetarchive
+    name: Internet Archive
+    flaresolverr: false
+    settings:
+      titleOnly: true

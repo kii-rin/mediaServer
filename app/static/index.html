@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mediabox</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --line: #262a33; --text: #e8eaee; --muted: #8b92a1;
+    --accent: #5b8cff; --ok: #3ccf91; --warn: #f2b84b; --bad: #ff6b6b; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px 16px 40px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 26px 0 10px; }
+  .pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); }
+  .pill.ready { color: var(--ok); } .pill.error { color: var(--bad); } .pill.busy { color: var(--warn); }
+  .disk { margin-left: auto; font-size: 12px; color: var(--muted); min-width: 140px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .4s; }
+  form { display: flex; gap: 8px; }
+  input[type=search] { flex: 1; padding: 13px 14px; font-size: 16px; color: var(--text); background: var(--panel);
+                       border: 1px solid var(--line); border-radius: var(--radius); outline: none; }
+  input[type=search]:focus { border-color: var(--accent); }
+  button, .btn { appearance: none; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 600;
+                 background: var(--accent); color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
+  button.ghost, .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  button:disabled { opacity: .5; cursor: default; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+          display: flex; flex-direction: column; cursor: pointer; }
+  .poster { aspect-ratio: 2/3; background: #222 center/cover no-repeat; position: relative; }
+  .badge { position: absolute; top: 6px; left: 6px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+           background: rgba(0,0,0,.7); }
+  .state { position: absolute; bottom: 6px; right: 6px; font-size: 11px; padding: 2px 7px; border-radius: 6px; background: rgba(0,0,0,.75); }
+  .state.ready { color: var(--ok); } .state.downloading { color: var(--accent); } .state.searching { color: var(--warn); }
+  .card .meta { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .title { font-weight: 600; font-size: 14px; line-height: 1.25; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .card button { margin-top: auto; padding: 7px 10px; font-size: 13px; }
+  .dl { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+  .dl .row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+  .notice { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--warn);
+            border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 14px; }
+  .notice.bad { border-left-color: var(--bad); }
+  footer { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 8px; }
+  footer a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; }
+  footer a:hover { color: var(--text); }
+  /* detail sheet */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet-bg.open { display: flex; }
+  .sheet { background: var(--panel); width: 100%; max-width: 640px; max-height: 88vh; overflow: auto;
+           border-radius: 16px 16px 0 0; padding: 18px; border: 1px solid var(--line); }
+  @media (min-width: 700px) { .sheet-bg { align-items: center; } .sheet { border-radius: 16px; } }
+  .sheet-head { display: flex; gap: 14px; }
+  .sheet-head .poster { width: 96px; flex: none; border-radius: 8px; }
+  .file { border-top: 1px solid var(--line); padding: 10px 0; display: flex; flex-direction: column; gap: 8px; }
+  .file .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .file .actions .btn, .file .actions button { padding: 7px 10px; font-size: 13px; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #000; color: #fff;
+           padding: 9px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  .toast.show { opacity: .92; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Mediabox</h1>
+    <span id="setup" class="pill busy">Starting…</span>
+    <div class="disk" id="disk"></div>
+  </header>
+
+  <div id="setupNotice"></div>
+
+  <form id="searchForm">
+    <input type="search" id="q" placeholder="Search movies and shows…" autocomplete="off" enterkeyhint="search">
+    <button type="submit">Search</button>
+  </form>
+
+  <section id="resultsSection" hidden>
+    <h2>Results</h2>
+    <div class="grid" id="results"></div>
+  </section>
+
+  <h2>Downloading</h2>
+  <div id="downloads"><div class="empty">Nothing downloading.</div></div>
+
+  <h2>Library</h2>
+  <div class="grid" id="library"></div>
+  <div class="empty" id="libraryEmpty">Your library is empty. Search above to add something.</div>
+
+  <footer>
+    <a href="/radarr/">Radarr</a>
+    <a href="/sonarr/">Sonarr</a>
+    <a href="/prowlarr/">Prowlarr</a>
+    <a href="/qbit/">Downloads</a>
+    <a href="/dav/">Files (WebDAV)</a>
+  </footer>
+</main>
+
+<div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") n.className = v;
+    else if (k === "style") n.style.cssText = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== undefined && v !== null) n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) n.append(c);
+  return n;
+};
+const fmtBytes = (b) => {
+  if (!b) return "0 B";
+  const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return b.toFixed(i > 1 ? 1 : 0) + " " + u[i];
+};
+const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2200); };
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { msg = (await r.json()).detail || msg; } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function posterDiv(item, extra = []) {
+  const d = el("div", { class: "poster" }, extra);
+  if (item.poster) d.style.backgroundImage = `url("${item.poster.replace(/"/g, "%22")}")`;
+  return d;
+}
+const typeLabel = (t) => (t === "movie" ? "MOVIE" : "TV");
+const stateLabel = { ready: "Ready", downloading: "Downloading", searching: "Searching" };
+
+/* ---------- search ---------- */
+$("#searchForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#q").value.trim();
+  if (!q) return;
+  const box = $("#results");
+  $("#resultsSection").hidden = false;
+  box.replaceChildren(el("div", { class: "empty" }, "Searching…"));
+  try {
+    const items = await api("/api/search?q=" + encodeURIComponent(q));
+    if (!items.length) { box.replaceChildren(el("div", { class: "empty" }, "No matches.")); return; }
+    box.replaceChildren(...items.map(resultCard));
+  } catch (err) {
+    box.replaceChildren(el("div", { class: "empty" }, "Search failed: " + err.message));
+  }
+});
+
+function resultCard(item) {
+  const btn = el("button", {}, item.inLibrary ? "In library" : "Get");
+  if (item.inLibrary) btn.className = "ghost";
+  btn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    if (item.inLibrary) { openItem(item.type, item.id); return; }
+    btn.disabled = true; btn.textContent = "Adding…";
+    try {
+      await api("/api/add", { method: "POST", headers: { "Content-Type": "application/json" },
+                             body: JSON.stringify({ type: item.type, id: item.id }) });
+      btn.textContent = "Added ✓"; btn.className = "ghost"; item.inLibrary = true; btn.disabled = false;
+      toast(`Looking for “${item.title}”`);
+      refresh();
+    } catch (err) { btn.disabled = false; btn.textContent = "Get"; toast("Couldn't add: " + err.message); }
+  });
+  return el("div", { class: "card", onclick: () => item.inLibrary && openItem(item.type, item.id) },
+    posterDiv(item, [el("span", { class: "badge" }, typeLabel(item.type))]),
+    el("div", { class: "meta" },
+      el("div", { class: "title" }, item.title),
+      el("div", { class: "muted" }, item.year || ""),
+      btn));
+}
+
+/* ---------- overview ---------- */
+async function refresh() {
+  let o;
+  try { o = await api("/api/overview"); } catch { return; }
+
+  const s = o.setup, pill = $("#setup");
+  pill.textContent = s.state === "ready" ? "Ready" : s.message;
+  pill.className = "pill " + (s.state === "ready" ? "ready" : s.state === "error" ? "error" : "busy");
+  const notice = $("#setupNotice");
+  if (s.state !== "ready") {
+    notice.replaceChildren(el("div", { class: "notice" + (s.state === "error" ? " bad" : "") },
+      s.state === "error" ? s.message : "First start: setting everything up. This takes a minute or two."));
+  } else {
+    const warn = Object.entries(s.steps).filter(([, v]) => v !== "ok");
+    notice.replaceChildren(...warn.map(([k, v]) => el("div", { class: "notice" }, `${k}: ${v}`)));
+  }
+
+  if (o.disk) {
+    const pct = Math.round((o.disk.used / o.disk.total) * 100);
+    $("#disk").replaceChildren(`${fmtBytes(o.disk.free)} free of ${fmtBytes(o.disk.total)}`,
+      el("div", { class: "bar" }, el("div", { style: `width:${pct}%` })));
+  }
+
+  const dls = $("#downloads");
+  if (!o.downloads.length) dls.replaceChildren(el("div", { class: "empty" }, "Nothing downloading."));
+  else dls.replaceChildren(...o.downloads.map(downloadRow));
+
+  $("#library").replaceChildren(...o.library.map(libraryCard));
+  $("#libraryEmpty").hidden = o.library.length > 0;
+}
+
+function downloadRow(d) {
+  return el("div", { class: "dl" },
+    el("div", { class: "row" },
+      el("span", {}, d.title || "Unknown"),
+      el("span", { class: "muted" }, `${d.progress}%` + (d.timeleft ? ` · ${d.timeleft}` : ""))),
+    el("div", { class: "bar" }, el("div", { style: `width:${d.progress}%` })),
+    d.errors && d.errors.length ? el("div", { class: "muted", style: "margin-top:6px;color:var(--warn)" }, d.errors.join(" · ")) : null);
+}
+
+function libraryCard(item) {
+  return el("div", { class: "card", onclick: () => openItem(item.type, item.id) },
+    posterDiv(item, [el("span", { class: "badge" }, typeLabel(item.type)),
+                     el("span", { class: "state " + item.state }, stateLabel[item.state] || item.state)]),
+    el("div", { class: "meta" },
+      el("div", { class: "title" }, item.title),
+      el("div", { class: "muted" }, [item.year, item.episodes ? item.episodes + " episodes" : null].filter(Boolean).join(" · "))));
+}
+
+/* ---------- detail sheet ---------- */
+let openTimer = null;
+async function openItem(type, id) {
+  $("#sheetBg").classList.add("open");
+  $("#sheet").replaceChildren(el("div", { class: "empty" }, "Loading…"));
+  const load = async () => {
+    try { renderItem(await api(`/api/item/${type}/${id}`)); }
+    catch (err) { $("#sheet").replaceChildren(el("div", { class: "empty" }, err.message)); }
+  };
+  await load();
+  clearInterval(openTimer);
+  openTimer = setInterval(load, 5000);
+}
+function closeItem() { $("#sheetBg").classList.remove("open"); clearInterval(openTimer); }
+$("#sheetBg").addEventListener("click", (e) => { if (e.target.id === "sheetBg") closeItem(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeItem(); });
+
+function renderItem(it) {
+  const files = it.files.map((f) => {
+    const full = location.origin + f.url;
+    return el("div", { class: "file" },
+      el("div", {}, f.name, el("span", { class: "muted" }, "  " + fmtBytes(f.size))),
+      el("div", { class: "actions" },
+        el("a", { class: "btn", href: f.url, target: "_blank", rel: "noopener" }, "▶ Play"),
+        el("a", { class: "btn ghost", href: "vlc://" + full }, "Open in VLC"),
+        el("button", { class: "ghost", onclick: async () => {
+          try { await navigator.clipboard.writeText(full); toast("Link copied"); }
+          catch { prompt("Stream link:", full); }
+        } }, "Copy link")));
+  });
+  const status = {
+    ready: "Ready to stream",
+    downloading: "Downloading…",
+    searching: "Looking for a download. This can take a while, and some titles may not be available from your sources.",
+  }[it.state] || it.state;
+  $("#sheet").replaceChildren(
+    el("div", { class: "sheet-head" },
+      posterDiv(it),
+      el("div", {},
+        el("div", { class: "title", style: "font-size:18px" }, it.title),
+        el("div", { class: "muted" }, [it.year, typeLabel(it.type)].filter(Boolean).join(" · ")),
+        el("p", { class: "muted", style: "margin:8px 0 0" }, status))),
+    it.overview ? el("p", { style: "font-size:14px" }, it.overview) : null,
+    ...it.downloads.map(downloadRow),
+    ...files,
+    el("div", { style: "margin-top:14px;display:flex;justify-content:flex-end" },
+      el("button", { class: "ghost", onclick: closeItem }, "Close")));
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

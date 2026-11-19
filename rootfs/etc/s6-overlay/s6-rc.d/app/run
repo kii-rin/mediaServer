@@ -1,0 +1,3 @@
+#!/command/with-contenv sh
+cd /opt/mediabox
+exec s6-setuidgid media env HOME=/data/config /opt/mediabox/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 5000 --log-level warning

@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec s6-setuidgid media env HOME=/data/config qbittorrent-nox --profile=/data/config/qbittorrent --webui-port=8081

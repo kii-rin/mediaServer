@@ -1,0 +1,3 @@
+#!/command/with-contenv sh
+cd /app
+exec s6-setuidgid media env HOME=/data/config/flaresolverr HOST=127.0.0.1 PORT=8191 LOG_LEVEL=info /usr/local/bin/python -u /app/flaresolverr.py

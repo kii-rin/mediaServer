@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec /usr/local/bin/python3 /etc/s6-overlay/scripts/init.py

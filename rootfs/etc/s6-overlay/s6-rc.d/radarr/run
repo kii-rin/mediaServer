@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec s6-setuidgid media env HOME=/data/config /opt/radarr/Radarr -nobrowser -data=/data/config/radarr

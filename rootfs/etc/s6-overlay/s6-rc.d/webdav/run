@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec s6-setuidgid media rclone serve webdav /data/media --addr 127.0.0.1:8090 --baseurl /dav --read-only --dir-cache-time 10s --config /dev/null

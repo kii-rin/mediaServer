@@ -1,0 +1,2 @@
+#!/command/with-contenv sh
+exec s6-setuidgid media env HOME=/data/config /opt/prowlarr/Prowlarr -nobrowser -data=/data/config/prowlarr
