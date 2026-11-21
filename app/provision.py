@@ -168,24 +168,43 @@ async def run_once() -> None:
     tag = await ensure_tag("flaresolverr")
     await step("FlareSolverr", ensure_flaresolverr(tag))
 
+    problems = await sync_indexers(tag)
+    status.state = "ready"
+    status.message = "Ready" if not problems else "Ready (some indexers not added yet)"
+    return tag, problems
+
+
+async def sync_indexers(tag: int) -> list[str]:
     problems = await ensure_indexers(tag)
     status.steps["Indexers"] = "ok" if not problems else "warning: " + "; ".join(problems)
     # Push indexers to Radarr/Sonarr right away instead of waiting for the timer
     await prowlarr.post("/command", {"name": "ApplicationIndexerSync"})
-
-    status.state = "ready"
-    status.message = "Ready" if not problems else "Ready (some indexers could not be added)"
+    return problems
 
 
 async def run_forever() -> None:
     delay = 10
     while True:
         try:
-            await run_once()
+            tag, problems = await run_once()
             log.info("setup complete")
-            return
+            break
         except Exception as e:  # keep retrying; show the reason in the UI
             log.exception("setup failed")
             status.state, status.message = "error", f"Setup problem, retrying: {e}"
             await asyncio.sleep(delay)
             delay = min(delay * 2, 300)
+
+    # On a fresh install Prowlarr downloads its indexer definitions in the
+    # background, so an indexer can be "unknown" for the first few minutes.
+    # Keep trying for about an hour instead of giving up until next restart.
+    for _ in range(30):
+        if not problems:
+            break
+        await asyncio.sleep(120)
+        try:
+            problems = await sync_indexers(tag)
+        except Exception:
+            log.exception("indexer retry failed")
+            continue
+        status.message = "Ready" if not problems else "Ready (some indexers not added yet)"

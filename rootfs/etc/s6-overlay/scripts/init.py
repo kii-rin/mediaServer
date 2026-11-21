@@ -56,7 +56,7 @@ def make_dirs() -> None:
         f"{CONFIG}/sonarr",
         f"{CONFIG}/prowlarr",
         f"{CONFIG}/qbittorrent/qBittorrent/config",
-        f"{CONFIG}/flaresolverr",
+        f"{CONFIG}/flaresolverr/.config/chromium/Crash Reports/pending",  # same as FlareSolverr's image
         f"{DATA}/downloads",
         f"{DATA}/media/movies",
         f"{DATA}/media/tv",
